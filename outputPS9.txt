@@ -1,0 +1,28 @@
+CITY SURVEILLANCE AGENT - PATROL PATH REPORT
+============================================================
+
+Starting point : Marina_Beach
+Total landmarks: 6
+Total lanes    : 9
+Lanes covered  : 9
+All lanes covered exactly once: True
+
+INTERMEDIATE PATHS:
+  Step  1: Marina_Beach Vandaloor_Zoo
+  Step  2: Marina_Beach Vandaloor_Zoo Mahabalipuram
+  Step  3: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu
+  Step  4: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach
+  Step  5: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram
+  Step  6: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach
+  Step  7: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach
+  Step  8: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum
+  Step  9: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum Marina_Beach
+
+FINAL PATH:
+Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum Marina_Beach
+
+SPACE AND TIME COMPLEXITY (MEASURED, NOT THEORETICAL):
+  Actual execution time : 0.00012121 seconds
+  Current memory in use : 3786 bytes
+  Peak memory allocated : 4178 bytes
+  Landmarks explored    : 19
