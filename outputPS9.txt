@@ -1,28 +1,19 @@
-CITY SURVEILLANCE AGENT - PATROL PATH REPORT
-============================================================
-
-Starting point : Marina_Beach
-Total landmarks: 6
-Total lanes    : 9
-Lanes covered  : 9
-All lanes covered exactly once: True
+=== CITY SURVEILLANCE AGENT OUTPUT ===
 
 INTERMEDIATE PATHS:
-  Step  1: Marina_Beach Vandaloor_Zoo
-  Step  2: Marina_Beach Vandaloor_Zoo Mahabalipuram
-  Step  3: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu
-  Step  4: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach
-  Step  5: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram
-  Step  6: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach
-  Step  7: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach
-  Step  8: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum
-  Step  9: Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum Marina_Beach
+Step 1: Mahabalipuram
+Step 2: Mahabalipuram -> Vandalur Zoo
+Step 3: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach
+Step 4: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu
+Step 5: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum
+Step 6: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum -> Marina Beach
+Step 7: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum -> Marina Beach -> Mahabalipuram
+Step 8: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum -> Marina Beach -> Mahabalipuram -> Kovalam Beach
+Step 9: Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum -> Marina Beach -> Mahabalipuram -> Kovalam Beach -> Government Museum
 
 FINAL PATH:
-Marina_Beach Vandaloor_Zoo Mahabalipuram Muttukadu Kovalam_Beach Mahabalipuram Marina_Beach Kovalam_Beach Government_Museum Marina_Beach
+Mahabalipuram -> Vandalur Zoo -> Kovalam Beach -> Muttukadu -> Government Museum -> Marina Beach -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Mahabalipuram
 
-SPACE AND TIME COMPLEXITY (MEASURED, NOT THEORETICAL):
-  Actual execution time : 0.00012121 seconds
-  Current memory in use : 3786 bytes
-  Peak memory allocated : 4178 bytes
-  Landmarks explored    : 19
+=== COMPLEXITY METRICS ===
+Time Complexity: 0.0975 milliseconds
+Space Complexity (Peak Memory): 8.02 KB
