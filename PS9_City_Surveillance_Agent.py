@@ -228,7 +228,7 @@ class GreedyBestFirstSearch:
                 stack.push(next_vertex)
                 # Record an intermediate path snapshot: the active trail from
                 # the start landmark to the current position (bottom -> top).
-                self.intermediate_paths.append(" ".join(stack._snapshot()))
+                self.intermediate_paths.append(" -> ".join(stack._snapshot()))
             else:
                 # Dead-end: backtrack, committing this landmark to the circuit.
                 circuit.append(stack.pop())
@@ -268,10 +268,12 @@ class SurveillanceAgent:
         """
         Read the map and starting point from the input file.
 
-        Format:
+        Format (fields are comma-separated, which supports multi-word
+        landmark names such as "Marina Beach"; plain whitespace separation is
+        also accepted when landmark names contain no spaces):
             Line 1 : starting landmark
             Line 2 : number of lanes E
-            Next E : <landmark1> <landmark2> <weight>
+            Next E : <landmark1>, <landmark2>, <weight>
         """
         try:
             with open(self.input_file, "r") as f:
@@ -308,7 +310,17 @@ class SurveillanceAgent:
             return False
 
         for i in range(2, 2 + num_edges):
-            parts = lines[i].split()
+            raw = lines[i].strip()
+            if not raw:
+                print(f"[ERROR] Lane on line {i + 1} is empty.")
+                return False
+            # Comma-separated fields support multi-word landmark names
+            # (e.g. "Marina Beach"); fall back to whitespace for single-word
+            # names so older input files keep working.
+            if "," in raw:
+                parts = [p.strip() for p in raw.split(",") if p.strip()]
+            else:
+                parts = raw.split()
             if len(parts) < 2:
                 print(f"[ERROR] Lane on line {i + 1} needs two landmarks.")
                 return False
@@ -364,7 +376,7 @@ class SurveillanceAgent:
                 f.write("\n")
 
                 f.write("FINAL PATH:\n")
-                f.write(" ".join(path) + "\n\n")
+                f.write(" -> ".join(path) + "\n\n")
 
                 f.write("SPACE AND TIME COMPLEXITY (MEASURED, NOT THEORETICAL):\n")
                 f.write(f"  Actual execution time : {elapsed:.8f} seconds\n")
