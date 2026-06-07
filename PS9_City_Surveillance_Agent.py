@@ -264,22 +264,46 @@ class SurveillanceAgent:
         self.graph = build_chennai_map()
         self.start_point: Optional[str] = None
 
-    def read_starting_point(self) -> bool:
+    def read_starting_point(self, input_file: str = "inputPS9.txt") -> bool:
         """
-        Read the starting landmark interactively from the user.
+        Read the starting landmark.
 
-        The prompt accepts terminal typing AND stdin redirection, so that
-            python PS9_City_Surveillance_Agent.py < inputPS9.txt
-        also works for batch testing.
+        Precedence:
+          1. If the input file (default inputPS9.txt) exists and its first
+             non-empty line holds a landmark, that value is used.
+          2. Otherwise the user is prompted via input(); this also supports
+             stdin redirection (python PS9_City_Surveillance_Agent.py
+             < inputPS9.txt) for batch testing.
+        Either way the required "Enter Starting point:" prompt is shown.
         """
+        value: Optional[str] = None
+
+        # 1. Try to read the starting point directly from the input file.
         try:
-            value = input("Enter Starting point: ").strip()
-        except EOFError:
-            print("[ERROR] No starting point provided on standard input.")
-            return False
+            with open(input_file, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        value = line
+                        break
+            if value:
+                print(f"Enter Starting point: {value}")
+        except FileNotFoundError:
+            value = None                        # fall back to interactive input
         except Exception as exc:                # basic error handling
-            print(f"[ERROR] Could not read starting point: {exc}")
-            return False
+            print(f"[ERROR] Could not read input file '{input_file}': {exc}")
+            value = None
+
+        # 2. Fall back to interactive / piped stdin input.
+        if not value:
+            try:
+                value = input("Enter Starting point: ").strip()
+            except EOFError:
+                print("[ERROR] No starting point provided on standard input.")
+                return False
+            except Exception as exc:            # basic error handling
+                print(f"[ERROR] Could not read starting point: {exc}")
+                return False
 
         if not value:
             print("[ERROR] Starting point cannot be empty.")
