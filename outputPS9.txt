@@ -23,8 +23,8 @@ FINAL PATH:
 Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach -> Vandaloor Zoo -> Mahabalipuram -> Marina Beach
 
 SPACE AND TIME COMPLEXITY (MEASURED, NOT THEORETICAL):
-  Actual execution time : 0.00013712 seconds
-  Current memory in use : 3953 bytes
-  Peak memory allocated : 7080 bytes
+  Actual execution time : 0.00024000 seconds
+  Current memory in use : 1945 bytes
+  Peak memory allocated : 5128 bytes
   States expanded       : 10
   Peak frontier size    : 9
