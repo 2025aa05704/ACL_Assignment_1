@@ -7,77 +7,80 @@
 # Course: MTech AIML - AIMLCZG557/AECLZG557
 #
 # The drone must traverse every lane (edge) between landmarks (vertices)
-# without repeating any lane, while landmarks may be visited more than once.
-# A solution that covers all edges exactly once exists only when the graph
-# has an Eulerian path/circuit (0 or 2 odd-degree vertices). The GBFS
-# heuristic guides the choice of the next lane at every step, and an explicit
-# Stack is used to backtrack so that ALL lanes are guaranteed to be covered.
+# without repeating any lane, while landmarks MAY be visited more than once.
+# A solution that covers every edge exactly once exists only when the graph
+# is connected and has either 0 or exactly 2 odd-degree vertices (Euler's
+# theorem). GBFS expands the state (current_landmark, used_lanes) whose
+# heuristic value is the smallest - i.e. the state closest to the goal of
+# covering every lane.
+#
+# Data structures used (with overflow/underflow handling as required):
+#   * PriorityQueue (min-heap) - the GBFS frontier
+#   * Graph (adjacency list)   - the city map
 # ============================================================================
 
+import heapq
 import time
 import tracemalloc
 from collections import defaultdict
-from typing import List, Tuple, Optional
+from typing import Any, List, Tuple, Optional
 
 
 # ----------------------------------------------------------------------------
-# DATA STRUCTURE: Stack (with full/empty messages and basic error handling)
+# DATA STRUCTURE: Priority Queue (min-heap) with full/empty messages
 # ----------------------------------------------------------------------------
-class Stack:
+class PriorityQueue:
     """
-    A bounded LIFO stack used by the search to backtrack along the walk.
+    Bounded min-heap priority queue used as the GBFS frontier.
 
-    Every insert (push) and delete (pop) operation reports an appropriate
-    message when the stack is full or empty, as required by the problem
-    statement.
+    Items are stored as (priority, sequence_id, payload). The min-heap pops
+    the item with the LOWEST priority first; the sequence_id breaks ties in
+    favour of the most recently inserted state (DFS-like exploration on
+    equal heuristic values, which works well for Eulerian walks).
     """
 
     def __init__(self, capacity: int):
         if capacity <= 0:
-            raise ValueError("Stack capacity must be a positive integer.")
+            raise ValueError("PriorityQueue capacity must be a positive integer.")
         self.capacity = capacity
-        self._items: List = []
+        self._heap: List[Tuple] = []
+        self._seq = 0   # monotonically decreasing tiebreaker -> LIFO on ties
 
     def is_empty(self) -> bool:
-        """Return True if the stack holds no elements."""
-        return len(self._items) == 0
+        """Return True if the queue holds no elements."""
+        return len(self._heap) == 0
 
     def is_full(self) -> bool:
-        """Return True if the stack has reached its capacity."""
-        return len(self._items) == self.capacity
+        """Return True if the queue has reached its capacity."""
+        return len(self._heap) >= self.capacity
 
-    def push(self, item) -> bool:
+    def push(self, priority: float, payload: Any) -> bool:
         """
-        Insert an item on top of the stack.
-        Prints a message and returns False if the stack is full (overflow).
+        Insert an item with the given priority.
+        Prints a message and returns False when the queue is full (overflow).
         """
         if self.is_full():
-            print(f"[Stack OVERFLOW] Cannot push '{item}': stack is full "
+            print(f"[PriorityQueue OVERFLOW] Cannot push item: queue is full "
                   f"(capacity = {self.capacity}).")
             return False
-        self._items.append(item)
+        self._seq -= 1   # smaller seq -> newer item pops first on tied priority
+        heapq.heappush(self._heap, (priority, self._seq, payload))
         return True
 
-    def pop(self):
+    def pop(self) -> Optional[Tuple[float, Any]]:
         """
-        Remove and return the top item.
-        Prints a message and returns None if the stack is empty (underflow).
+        Remove and return the (priority, payload) with the lowest priority.
+        Prints a message and returns None when the queue is empty (underflow).
         """
         if self.is_empty():
-            print("[Stack UNDERFLOW] Cannot pop: stack is empty.")
+            print("[PriorityQueue UNDERFLOW] Cannot pop: queue is empty.")
             return None
-        return self._items.pop()
-
-    def peek(self):
-        """Return (without removing) the top item, or None if empty."""
-        if self.is_empty():
-            print("[Stack EMPTY] Cannot peek: stack is empty.")
-            return None
-        return self._items[-1]
+        priority, _, payload = heapq.heappop(self._heap)
+        return priority, payload
 
     def size(self) -> int:
-        """Return the current number of elements in the stack."""
-        return len(self._items)
+        """Return the current number of elements in the queue."""
+        return len(self._heap)
 
 
 # ----------------------------------------------------------------------------
@@ -133,215 +136,165 @@ class Graph:
         """Return all landmarks with an odd number of incident lanes."""
         return [v for v in self.vertices if self.get_degree(v) % 2 == 1]
 
-    # --- The following helper is for testing/printing only -------------------
-    # def __str__(self) -> str:
-    #     out = "Adjacency list:\n"
-    #     for v in sorted(self.vertices):
-    #         out += f"  {v}: {self.adj[v]}\n"
-    #     return out
+
+def build_chennai_map() -> Graph:
+    """
+    Build the Chennai tourist-landmark map shown in the problem statement.
+
+    The graph below is the one drawn in the assignment PDF (and matches the
+    sample output path). Weights are illustrative distances (km).
+    """
+    g = Graph()
+    canonical = [
+        ("Marina Beach",      "Mahabalipuram",     2.5),
+        ("Mahabalipuram",     "Vandaloor Zoo",     3.0),
+        ("Vandaloor Zoo",     "Kovalam Beach",     4.0),
+        ("Kovalam Beach",     "Muttukadu",         1.5),
+        ("Muttukadu",         "Government Museum", 2.8),
+        ("Government Museum", "Kovalam Beach",     2.0),
+        ("Kovalam Beach",     "Mahabalipuram",     2.2),
+        ("Mahabalipuram",     "Government Museum", 3.5),
+        ("Government Museum", "Marina Beach",      3.0),
+    ]
+    for u, v, w in canonical:
+        g.add_edge(u, v, w)
+    return g
 
 
 # ----------------------------------------------------------------------------
-# ALGORITHM: Greedy Best First Search guided Eulerian traversal
+# ALGORITHM: canonical Greedy Best First Search
 # ----------------------------------------------------------------------------
 class GreedyBestFirstSearch:
     """
-    Cover every lane exactly once using a GBFS-guided walk.
-
-    At each landmark the agent looks at all not-yet-used lanes and uses a
-    heuristic to greedily pick the most promising next lane. An explicit
-    Stack lets the agent backtrack when it reaches a landmark with no unused
-    lanes, splicing sub-tours together (Hierholzer-style) so that EVERY lane
-    is eventually covered. Backtracking never re-uses a lane.
+    Greedy Best First Search over the state space
+        state = (current_landmark, frozenset of used_lanes)
+    using a priority queue keyed by the heuristic h(state). The first state
+    popped whose used_lanes covers EVERY lane exactly once is the answer.
     """
 
     def __init__(self, graph: Graph, start_vertex: str):
         self.graph = graph
         self.start_vertex = start_vertex
-        self.visited_edges = set()
         self.total_edges = graph.edge_count
-        self.intermediate_paths: List[str] = []   # snapshots for the report
+        self.intermediate_paths: List[str] = []
         self.nodes_explored = 0
+        self.peak_frontier_size = 0
 
-    def heuristic(self, neighbour: str) -> float:
+    def heuristic(self, visited_edges: frozenset, current: str) -> float:
         """
-        Heuristic h(n): estimate of how 'useful' moving to `neighbour` is.
+        h(state) - estimate of how far this state is from the goal.
 
-        h(n) = (unused lanes still incident to neighbour)
-               + 1 / (1 + number of lanes already used at neighbour)
-
-        Fewer remaining unused lanes at a candidate => closer to finishing
-        that landmark, so a LOWER value is preferred (greedy best-first).
-        The second term breaks ties in favour of landmarks we have touched
-        less, keeping the walk flexible.
+        Primary component  : number of lanes still to be covered
+                             (E - |used|). Lower => closer to goal, which is
+                             exactly the GBFS convention.
+        Secondary component: a small term that prefers states whose CURRENT
+                             landmark still has many unused incident lanes
+                             - this keeps the search flexible and avoids
+                             walking into stranded lanes.
+                             Weight is small enough that the primary term
+                             always dominates.
         """
-        unused_incident = 0
-        used_incident = 0
-        for nbr, _ in self.graph.get_neighbors(neighbour):
-            edge = tuple(sorted([neighbour, nbr]))
-            if edge in self.visited_edges:
-                used_incident += 1
-            else:
-                unused_incident += 1
-        return unused_incident + 1.0 / (1 + used_incident)
-
-    def _select_next(self, current: str) -> Optional[Tuple[str, tuple]]:
-        """Pick the unused lane from `current` with the best (lowest) h(n)."""
-        best_next, best_edge, best_h = None, None, float("inf")
-        for neighbour, _ in self.graph.get_neighbors(current):
-            edge = tuple(sorted([current, neighbour]))
-            if edge in self.visited_edges:
-                continue
-            h = self.heuristic(neighbour)
-            if h < best_h:
-                best_h, best_next, best_edge = h, neighbour, edge
-        if best_next is None:
-            return None
-        return best_next, best_edge
+        remaining_total = self.total_edges - len(visited_edges)
+        unused_at_current = 0
+        for nbr, _ in self.graph.get_neighbors(current):
+            edge = tuple(sorted([current, nbr]))
+            if edge not in visited_edges:
+                unused_at_current += 1
+        # Smaller is better. We subtract a tiny fraction so that on ties
+        # in remaining_total, states with MORE unused options at the current
+        # landmark win.
+        return remaining_total - unused_at_current / (self.total_edges + 1.0)
 
     def find_path(self) -> List[str]:
         """
-        Build a walk that covers every lane exactly once.
-
-        Returns the ordered list of landmarks visited (the final patrol path).
-        Uses a Stack for backtracking; the resulting walk is an Eulerian
-        path/circuit when one exists.
+        Run GBFS and return the patrol path covering every lane exactly once,
+        or an empty list when no such walk exists from the given start.
         """
         if not self.graph.is_valid_vertex(self.start_vertex):
-            print(f"[ERROR] Starting point '{self.start_vertex}' not on the map.")
+            print(f"[ERROR] Starting point '{self.start_vertex}' is not on the map.")
             return []
 
-        # Stack capacity: a walk over E edges visits at most E+1 landmarks.
-        stack = Stack(capacity=self.total_edges + 1)
-        circuit: List[str] = []
+        num_vertices = len(self.graph.vertices)
+        num_edges = self.total_edges
+        # Generous upper bound on reachable states: V * 2^E.
+        capacity = max(1024, num_vertices * (1 << num_edges))
+        frontier = PriorityQueue(capacity=capacity)
 
-        stack.push(self.start_vertex)
-        while not stack.is_empty():
+        initial_state = (self.start_vertex, frozenset(), (self.start_vertex,))
+        frontier.push(self.heuristic(frozenset(), self.start_vertex), initial_state)
+
+        while not frontier.is_empty():
             self.nodes_explored += 1
-            current = stack.peek()
-            selection = self._select_next(current)
+            self.peak_frontier_size = max(self.peak_frontier_size, frontier.size() + 1)
 
-            if selection is not None:
-                # Greedily move along the best unused lane.
-                next_vertex, edge = selection
-                self.visited_edges.add(edge)
-                stack.push(next_vertex)
-                # Record an intermediate path snapshot: the active trail from
-                # the start landmark to the current position (bottom -> top).
-                self.intermediate_paths.append(" -> ".join(stack._snapshot()))
-            else:
-                # Dead-end: backtrack, committing this landmark to the circuit.
-                circuit.append(stack.pop())
+            popped = frontier.pop()
+            if popped is None:
+                break
+            _, (current, used, path) = popped
 
-        circuit.reverse()
-        return circuit
+            # Record an intermediate path snapshot for the report.
+            self.intermediate_paths.append(" -> ".join(path))
 
-    def get_edges_covered(self) -> int:
-        """Return how many distinct lanes have been traversed."""
-        return len(self.visited_edges)
+            # Goal test: have we covered every lane?
+            if len(used) == self.total_edges:
+                return list(path)
 
-    def all_edges_covered(self) -> bool:
-        """Return True if every lane was covered exactly once."""
-        return len(self.visited_edges) == self.total_edges
+            # Expand: push one successor per unused incident lane.
+            for neighbour, _ in self.graph.get_neighbors(current):
+                edge = tuple(sorted([current, neighbour]))
+                if edge in used:
+                    continue
+                new_used = used | {edge}
+                new_path = path + (neighbour,)
+                priority = self.heuristic(new_used, neighbour)
+                frontier.push(priority, (neighbour, new_used, new_path))
 
-
-# Give the Stack a private snapshot helper used only for the report output.
-def _stack_snapshot(self):
-    return list(self._items)
-Stack._snapshot = _stack_snapshot
+        # Queue exhausted without finding a complete walk.
+        return []
 
 
 # ----------------------------------------------------------------------------
 # AGENT: input/output orchestration
 # ----------------------------------------------------------------------------
 class SurveillanceAgent:
-    """Reads the map and starting point, runs GBFS, and writes the report."""
+    """Reads the starting point, runs GBFS, and writes outputPS9.txt."""
 
-    def __init__(self, input_file: str = "inputPS9.txt",
-                 output_file: str = "outputPS9.txt"):
-        self.input_file = input_file
+    def __init__(self, output_file: str = "outputPS9.txt"):
         self.output_file = output_file
-        self.graph = Graph()
+        self.graph = build_chennai_map()
         self.start_point: Optional[str] = None
 
-    def read_input(self) -> bool:
+    def read_starting_point(self) -> bool:
         """
-        Read the map and starting point from the input file.
+        Read the starting landmark interactively from the user.
 
-        Format (fields are comma-separated, which supports multi-word
-        landmark names such as "Marina Beach"; plain whitespace separation is
-        also accepted when landmark names contain no spaces):
-            Line 1 : starting landmark
-            Line 2 : number of lanes E
-            Next E : <landmark1>, <landmark2>, <weight>
+        The prompt accepts terminal typing AND stdin redirection, so that
+            python PS9_City_Surveillance_Agent.py < inputPS9.txt
+        also works for batch testing.
         """
         try:
-            with open(self.input_file, "r") as f:
-                lines = [ln.rstrip("\n") for ln in f.readlines()]
-        except FileNotFoundError:
-            print(f"[ERROR] Input file '{self.input_file}' not found.")
+            value = input("Enter Starting point: ").strip()
+        except EOFError:
+            print("[ERROR] No starting point provided on standard input.")
             return False
-        except Exception as exc:                       # basic error handling
-            print(f"[ERROR] Could not read input file: {exc}")
-            return False
-
-        # Drop trailing blank lines.
-        while lines and lines[-1].strip() == "":
-            lines.pop()
-
-        if len(lines) < 2:
-            print("[ERROR] Input must have a starting point and a lane count.")
+        except Exception as exc:                # basic error handling
+            print(f"[ERROR] Could not read starting point: {exc}")
             return False
 
-        self.start_point = lines[0].strip()
-        if not self.start_point:
-            print("[ERROR] Starting point (line 1) is empty.")
+        if not value:
+            print("[ERROR] Starting point cannot be empty.")
             return False
 
-        try:
-            num_edges = int(lines[1].strip())
-        except ValueError:
-            print("[ERROR] Line 2 must be an integer (number of lanes).")
+        if not self.graph.is_valid_vertex(value):
+            print(f"[ERROR] '{value}' is not a landmark on the map. "
+                  f"Valid landmarks: {sorted(self.graph.vertices)}")
             return False
 
-        if len(lines) - 2 < num_edges:
-            print(f"[ERROR] Declared {num_edges} lanes but found "
-                  f"{len(lines) - 2}.")
-            return False
-
-        for i in range(2, 2 + num_edges):
-            raw = lines[i].strip()
-            if not raw:
-                print(f"[ERROR] Lane on line {i + 1} is empty.")
-                return False
-            # Comma-separated fields support multi-word landmark names
-            # (e.g. "Marina Beach"); fall back to whitespace for single-word
-            # names so older input files keep working.
-            if "," in raw:
-                parts = [p.strip() for p in raw.split(",") if p.strip()]
-            else:
-                parts = raw.split()
-            if len(parts) < 2:
-                print(f"[ERROR] Lane on line {i + 1} needs two landmarks.")
-                return False
-            u, v = parts[0], parts[1]
-            weight = 1.0
-            if len(parts) >= 3:
-                try:
-                    weight = float(parts[2])
-                except ValueError:
-                    print(f"[WARNING] Bad weight on line {i + 1}; using 1.0.")
-            self.graph.add_edge(u, v, weight)
-
-        if not self.graph.is_valid_vertex(self.start_point):
-            print(f"[ERROR] Starting point '{self.start_point}' is not part "
-                  f"of any lane.")
-            return False
+        self.start_point = value
         return True
 
     def run(self) -> bool:
         """Run GBFS while measuring real time and memory, then write report."""
-        # --- Measure ACTUAL space and time (not theoretical) ----------------
         tracemalloc.start()
         start_time = time.perf_counter()
 
@@ -358,7 +311,9 @@ class SurveillanceAgent:
 
         return self._write_report(gbfs, path, elapsed, current_mem, peak_mem)
 
-    def _write_report(self, gbfs, path, elapsed, current_mem, peak_mem) -> bool:
+    def _write_report(self, gbfs: GreedyBestFirstSearch, path: List[str],
+                      elapsed: float, current_mem: int, peak_mem: int) -> bool:
+        """Write a structured report to outputPS9.txt."""
         try:
             with open(self.output_file, "w") as f:
                 f.write("CITY SURVEILLANCE AGENT - PATROL PATH REPORT\n")
@@ -366,9 +321,10 @@ class SurveillanceAgent:
                 f.write(f"Starting point : {self.start_point}\n")
                 f.write(f"Total landmarks: {len(self.graph.vertices)}\n")
                 f.write(f"Total lanes    : {self.graph.edge_count}\n")
-                f.write(f"Lanes covered  : {gbfs.get_edges_covered()}\n")
+                lanes_covered = len(path) - 1 if path else 0
+                f.write(f"Lanes covered  : {lanes_covered}\n")
                 f.write(f"All lanes covered exactly once: "
-                        f"{gbfs.all_edges_covered()}\n\n")
+                        f"{lanes_covered == self.graph.edge_count}\n\n")
 
                 f.write("INTERMEDIATE PATHS:\n")
                 for idx, snap in enumerate(gbfs.intermediate_paths, 1):
@@ -382,14 +338,15 @@ class SurveillanceAgent:
                 f.write(f"  Actual execution time : {elapsed:.8f} seconds\n")
                 f.write(f"  Current memory in use : {current_mem} bytes\n")
                 f.write(f"  Peak memory allocated : {peak_mem} bytes\n")
-                f.write(f"  Landmarks explored    : {gbfs.nodes_explored}\n")
+                f.write(f"  States expanded       : {gbfs.nodes_explored}\n")
+                f.write(f"  Peak frontier size    : {gbfs.peak_frontier_size}\n")
             print(f"Results written to {self.output_file}")
             return True
-        except Exception as exc:                       # basic error handling
+        except Exception as exc:                # basic error handling
             print(f"[ERROR] Could not write output file: {exc}")
             return False
 
-    def display_results(self):
+    def display_results(self) -> None:
         """Echo the generated report to the console."""
         try:
             with open(self.output_file, "r") as f:
@@ -398,22 +355,28 @@ class SurveillanceAgent:
             print(f"[ERROR] Output file '{self.output_file}' not found.")
 
 
-def main():
+def main() -> None:
     """Program entry point."""
     print("CITY SURVEILLANCE AGENT - GREEDY BEST FIRST SEARCH")
     print("=" * 60)
 
     agent = SurveillanceAgent()
-    if not agent.read_input():
-        print("Failed to read input. Exiting.")
-        return
-
-    print(f"Loaded {len(agent.graph.vertices)} landmarks and "
+    print(f"Loaded city map: {len(agent.graph.vertices)} landmarks, "
           f"{agent.graph.edge_count} lanes.")
+
     odd = agent.graph.odd_degree_vertices()
-    if len(odd) not in (0, 2):
+    if len(odd) == 0:
+        print("Eulerian CIRCUIT exists (every landmark has even degree). "
+              "Any starting point is valid.")
+    elif len(odd) == 2:
+        print(f"Eulerian PATH exists. Valid starting points: {sorted(odd)}.")
+    else:
         print(f"[NOTE] Graph has {len(odd)} odd-degree landmarks; an Eulerian "
-              f"path may not exist, so some lanes could remain uncovered.")
+              f"walk may not exist, so some lanes could remain uncovered.")
+
+    if not agent.read_starting_point():
+        print("Failed to read starting point. Exiting.")
+        return
 
     if not agent.run():
         print("Failed to run surveillance. Exiting.")

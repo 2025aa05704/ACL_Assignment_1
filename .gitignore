@@ -1,0 +1,52 @@
+# ---- PyCharm / JetBrains IDE ----
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ---- Python virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Python build artefacts ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# ---- Test / coverage ----
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ---- Editor swap / backup files ----
+*.swp
+*.swo
+*~
+.vscode/
+
+# ---- Logs ----
+*.log
+
+# ---- Misc temp ----
+*.tmp
+*.bak

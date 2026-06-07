@@ -1,11 +1,1 @@
 Marina Beach
-9
-Marina Beach, Mahabalipuram, 2.5
-Marina Beach, Vandaloor Zoo, 4.0
-Marina Beach, Kovalam Beach, 3.0
-Marina Beach, Government Museum, 3.5
-Mahabalipuram, Vandaloor Zoo, 3.0
-Mahabalipuram, Kovalam Beach, 2.2
-Mahabalipuram, Muttukadu, 3.2
-Kovalam Beach, Muttukadu, 1.5
-Kovalam Beach, Government Museum, 2.8

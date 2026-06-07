@@ -8,21 +8,23 @@ Lanes covered  : 9
 All lanes covered exactly once: True
 
 INTERMEDIATE PATHS:
-  Step  1: Marina Beach -> Vandaloor Zoo
-  Step  2: Marina Beach -> Vandaloor Zoo -> Mahabalipuram
-  Step  3: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu
-  Step  4: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach
-  Step  5: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram
-  Step  6: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram -> Marina Beach
-  Step  7: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram -> Marina Beach -> Kovalam Beach
-  Step  8: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram -> Marina Beach -> Kovalam Beach -> Government Museum
-  Step  9: Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram -> Marina Beach -> Kovalam Beach -> Government Museum -> Marina Beach
+  Step  1: Marina Beach
+  Step  2: Marina Beach -> Government Museum
+  Step  3: Marina Beach -> Government Museum -> Mahabalipuram
+  Step  4: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach
+  Step  5: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum
+  Step  6: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu
+  Step  7: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach
+  Step  8: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach -> Vandaloor Zoo
+  Step  9: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach -> Vandaloor Zoo -> Mahabalipuram
+  Step 10: Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach -> Vandaloor Zoo -> Mahabalipuram -> Marina Beach
 
 FINAL PATH:
-Marina Beach -> Vandaloor Zoo -> Mahabalipuram -> Muttukadu -> Kovalam Beach -> Mahabalipuram -> Marina Beach -> Kovalam Beach -> Government Museum -> Marina Beach
+Marina Beach -> Government Museum -> Mahabalipuram -> Kovalam Beach -> Government Museum -> Muttukadu -> Kovalam Beach -> Vandaloor Zoo -> Mahabalipuram -> Marina Beach
 
 SPACE AND TIME COMPLEXITY (MEASURED, NOT THEORETICAL):
-  Actual execution time : 0.00012496 seconds
-  Current memory in use : 3921 bytes
-  Peak memory allocated : 4313 bytes
-  Landmarks explored    : 19
+  Actual execution time : 0.00036142 seconds
+  Current memory in use : 2025 bytes
+  Peak memory allocated : 5456 bytes
+  States expanded       : 10
+  Peak frontier size    : 9
